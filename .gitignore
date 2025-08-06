@@ -1,0 +1,17 @@
+*/migrations/*.py
+!*/migrations/__init__.py
+
+*/__pycache__/
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.env
+venv/
+env/
+
+/staticfiles/
+
+.vscode/
+.idea/
+
+.env
