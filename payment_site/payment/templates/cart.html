@@ -1,0 +1,16 @@
+<html>
+  <head>
+    <title>Buy cool new product</title>
+  </head>
+  <body>
+    {% for item in items %}
+      <div>
+          <h3>{{ item.name }}</h3>
+          <p>Цена: {{ item.price }}</p>
+          <p>Количество: {{ item.quantity }}</p>
+          <p>Описание: {{ item.description }}</p>
+      </div>
+  {% endfor %}
+    <a href="/">К предметам</a>
+  </body>
+</html>
