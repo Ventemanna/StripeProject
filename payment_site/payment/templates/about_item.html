@@ -1,29 +1,33 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Buy Item 1</title>
-    <!-- Подключаем Stripe.js -->
+    <title>Buy {{ item.name }}</title>
     <script src="https://js.stripe.com/v3/"></script>
   </head>
   <body>
     <h1>{{ item.name }}</h1>
-    <p>{{ item.description }}</p>
-    <p>{{ item.price }}</p>
-    <form action="{% url 'add_item' item.id %}" method="post">
-      {% csrf_token %}
-    <input type="submit" value="Добавить в корзину">
-    <button id="buy-button">Buy</button>
+
+    <div class="item-card">
+      <p>{{ item.description }}</p>
+      <p class="price">{{ item.price }}$$</p>
+
+      <form action="{% url 'add_item' item.id %}" method="post">
+        {% csrf_token %}
+        <input type="submit" value="Добавить в корзину">
+        <button id="buy-button" type="button">Купить сейчас</button>
+      </form>
+    </div>
 
     <script type="text/javascript">
       var stripe = Stripe('{{ public_stripe_key }}');
-      var itemId = '{{ item.id }}'
+      var itemId = '{{ item.id }}';
       var buyButton = document.getElementById('buy-button');
       buyButton.addEventListener('click', function () {
         fetch(`/buy/${itemId}`, { method: 'GET' })
           .then(response => response.json())
           .then(session => {
             return stripe.redirectToCheckout({ sessionId: session.id });
-          })
+          });
       });
     </script>
   </body>
