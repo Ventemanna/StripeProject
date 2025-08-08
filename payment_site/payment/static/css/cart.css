@@ -1,0 +1,34 @@
+body {
+  font-family: sans-serif;
+  padding: 20px;
+}
+
+h3 {
+  margin-bottom: 5px;
+}
+
+div {
+  border: 1px solid #ccc;
+  box-shadow: 2px 2px 5px #ddd;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 4px;
+}
+
+a, button {
+  display: inline-block;
+  margin: 10px 5px 0 0;
+  padding: 10px 15px;
+  background: #3498db;
+  color: white;
+  text-decoration: none;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  min-width: 150px;
+  text-align: center;
+}
+
+a:hover, button:hover {
+  background: #2980b9;
+}
