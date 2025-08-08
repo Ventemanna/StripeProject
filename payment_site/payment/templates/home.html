@@ -7,15 +7,21 @@
       <div>
         <p>{{ item.name }}</p>
         <p>{{ item.description }}</p>
-        <p>{{ item.price }}</p>
-        <form action="{% url 'add_item' item.id %}" method="post">
-          {% csrf_token %}
-          {{ item_form }}
-        <input type="submit" value="Добавить">
-     </form>
+        <p>{{ item.price }}$$</p>
+        <div>
+          <form method="post">
+            {% csrf_token %}
+            {{ item_form }}
+            <button type="submit" formaction="{% url 'add_item' item.id %}">
+                Добавить в корзину
+            </button>
+            <button type="submit" formaction="{% url 'item' item.id %}">
+                Купить сразу
+            </button>
+          </form>
+        </div>
       </div>
     {% endfor %}
     <a href="./cart">Перейти в корзину</a>
-    </form>
   </body>
 </html>

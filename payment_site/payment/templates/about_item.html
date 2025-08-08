@@ -1,0 +1,19 @@
+<html>
+  <head>
+    <title>Buy cool current product</title>
+  </head>
+  <body>
+    <a href="/">Меню</a>
+    <div>
+      <p>{{ item.name }}</p>
+      <p>{{ item.description }}</p>
+      <p>Цена за 1шт: {{ item.price }}$$</p>
+      <p>Количество: {{ quantity }}</p>
+        <form action="{% url 'add_item' item.id %}" method="post">
+          {% csrf_token %}
+          {{ item_form }}
+        <input type="submit" value="Купить">
+        </form>
+    </div>
+  </body>
+</html>
