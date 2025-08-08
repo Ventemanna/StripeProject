@@ -1,6 +1,7 @@
 <html>
   <head>
-    <title>Корзина</title>
+      <title>Корзина</title>
+      <script src="https://js.stripe.com/v3/"></script>
   </head>
   <body>
     {% if items %}
@@ -16,8 +17,21 @@
     {% else %}
         <p>Пока тут пусто</p>
     {% endif %}
-    <a href="{% url 'buy' order_id %}">Оплатить</a>
     <a href="/">К предметам</a>
+    <button id="buy-button">Оплатить корзину</button>
     <a href="{% url 'delete_from_cart' %}" methods="POST">Очистить корзину</a>
+
+    <script type="text/javascript">
+      var stripe = Stripe('{{ public_stripe_key }}');
+      var orderId = '{{ order_id }}'
+      var buyButton = document.getElementById('buy-button');
+      buyButton.addEventListener('click', function () {
+        fetch(`/buy-order/${orderId}`, { method: 'GET' })
+          .then(response => response.json())
+          .then(session => {
+            return stripe.redirectToCheckout({ sessionId: session.id });
+          })
+      });
+    </script>
   </body>
 </html>

@@ -9,7 +9,9 @@
     <h1>{{ item.name }}</h1>
     <p>{{ item.description }}</p>
     <p>{{ item.price }}</p>
-
+    <form action="{% url 'add_item' item.id %}" method="post">
+      {% csrf_token %}
+    <input type="submit" value="Добавить в корзину">
     <button id="buy-button">Buy</button>
 
     <script type="text/javascript">

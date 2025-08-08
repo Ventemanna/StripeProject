@@ -78,6 +78,32 @@ def buy_item(request, item_id):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=404)
 
+def buy_order(request, order_id):
+    try:
+        item_orders = ItemOrder.objects.filter(order=order_id)
+        line_items = []
+        for item_order in item_orders:
+            line_items.append({
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': item_order.item.name,
+                        'description': item_order.item.description,
+                    },
+                    'unit_amount': int(item_order.item.price * 100)
+                },
+                'quantity': 1,
+            })
+        session = stripe.checkout.Session.create(
+            line_items=line_items,
+            mode='payment',
+            success_url='http://127.0.0.1:8000/success',
+            cancel_url='http://127.0.0.1:8000/cart',
+        )
+        return JsonResponse({'id': session.id})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=404)
+
 def success(request):
     if 'order_id' in request.session:
         order_id = request.session['order_id']
@@ -87,11 +113,8 @@ def success(request):
     return render(request, 'success_payment.html')
 
 def add_to_cart(request, item_id):
-    form = ItemForm(request.POST or None)
     quantity = 1
     if request.method == "POST":
-        if form.is_valid():
-            quantity = form.cleaned_data['quantity']
         try:
             item = Items.objects.get(id=item_id)
         except Items.DoesNotExist:
@@ -103,12 +126,9 @@ def add_to_cart(request, item_id):
 
         item_order, is_created = ItemOrder.objects.get_or_create(
             item=item,
-            order=order
+            order=order,
+            defaults={'quantity': quantity}
         )
-        if not is_created:
-            item_order.quantity += quantity
-        else:
-            item_order.quantity = quantity
         item_order.save()
     return redirect('/')
 
@@ -128,6 +148,7 @@ def cart(request):
             })
         context = {'items': info_data}
         order = get_order(request)
+        context['public_stripe_key'] = settings.PUBLIC_STRIPE_KEY
         context['total_price'] = order.total_price
         context['order_id'] = order.id
     return render(request,'cart.html', context)
