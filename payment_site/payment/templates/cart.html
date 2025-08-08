@@ -1,17 +1,23 @@
 <html>
   <head>
-    <title>Buy cool new product</title>
+    <title>Корзина</title>
   </head>
   <body>
-    {% for item in items %}
-      <div>
-          <h3>{{ item.name }}</h3>
-          <p>Цена: {{ item.price }}</p>
-          <p>Количество: {{ item.quantity }}</p>
-          <p>Описание: {{ item.description }}</p>
-      </div>
-  {% endfor %}
+    {% if items %}
+        {% for item in items %}
+          <div>
+              <h3>{{ item.name }}</h3>
+              <p>Цена: {{ item.price }}</p>
+              <p>Количество: {{ item.quantity }}</p>
+              <p>Описание: {{ item.description }}</p>
+          </div>
+        {% endfor %}
+        <p>Итого: {{ total_price }}</p>
+    {% else %}
+        <p>Пока тут пусто</p>
+    {% endif %}
+    <a href="{% url 'buy' order_id %}">Оплатить</a>
     <a href="/">К предметам</a>
-    <a href="clear_cart" methods="POST">Очистить корзину</a>
+    <a href="{% url 'delete_from_cart' %}" methods="POST">Очистить корзину</a>
   </body>
 </html>

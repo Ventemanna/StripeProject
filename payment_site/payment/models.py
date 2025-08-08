@@ -1,4 +1,3 @@
-from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 class Items(models.Model):
@@ -21,6 +20,9 @@ class Orders(models.Model):
         verbose_name = 'Order'
         verbose_name_plural = 'Orders'
 
+    def __str__(self):
+        return f"Закааз {self.id}"
+
 class ItemOrder(models.Model):
     item = models.ForeignKey(Items, on_delete=models.CASCADE)
     order = models.ForeignKey(Orders, on_delete=models.CASCADE)
@@ -29,3 +31,6 @@ class ItemOrder(models.Model):
     class Meta:
         verbose_name = 'Item-Order'
         verbose_name_plural = 'Item-Orders'
+
+    def __str__(self):
+        return f"Заказ {self.order.id} с {self.item.name} в количестве {self.quantity}"

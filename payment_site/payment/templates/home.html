@@ -1,27 +1,19 @@
 <html>
   <head>
-    <title>Buy cool new product</title>
+    <title>Магазин</title>
   </head>
   <body>
-    {% for item in all_items %}
+    <h1>Предметы</h1>
+    <div>
+      {% for item in all_items %}
       <div>
-        <p>{{ item.name }}</p>
+        <a href="{% url 'item' item.id %}">{{ item.name }}</a>
         <p>{{ item.description }}</p>
         <p>{{ item.price }}$$</p>
-        <div>
-          <form method="post">
-            {% csrf_token %}
-            {{ item_form }}
-            <button type="submit" formaction="{% url 'add_item' item.id %}">
-                Добавить в корзину
-            </button>
-            <button type="submit" formaction="{% url 'item' item.id %}">
-                Купить сразу
-            </button>
-          </form>
-        </div>
+        <a href="{% url 'item' item.id %}">Подробнее</a>
       </div>
-    {% endfor %}
-    <a href="./cart">Перейти в корзину</a>
+      {% endfor %}
+    </div>
+    <a href="cart">Перейти в корзину</a>
   </body>
 </html>
