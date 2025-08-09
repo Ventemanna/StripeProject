@@ -1,31 +1,25 @@
-import os
-import uuid
+import decimal
 
 import stripe
-from django.db.models import Prefetch
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import render, redirect
-from .models import Items, Orders, ItemOrder
-from .forms import ItemForm
+from .models import Items, Orders, Discounts, Tax
 
 from django.conf import settings
 
 stripe.api_key = settings.SECRET_STRIPE_KEY
 
 def home_page(request):
-    form = ItemForm()
+    order = get_order(request)
     all_items = Items.objects.all()
     info_data = {
         "all_items": all_items,
-        "item_form": form,
     }
     return render(request, 'home.html', info_data)
 
 def get_item_id(request, item_id):
     item = Items.objects.get(id=item_id)
-    form = ItemForm()
     context = {
-        'form': form,
         'item': item,
         'public_stripe_key': settings.PUBLIC_STRIPE_KEY,
     }
@@ -33,24 +27,19 @@ def get_item_id(request, item_id):
 
 def get_order(request):
     if 'order_id' in request.session:
-        order = Orders.objects.get(id=request.session['order_id'])
+        try:
+            order = Orders.objects.get(id=request.session['order_id'])
+        except Orders.DoesNotExist:
+            request.session.pop('order_id')
     else:
         order = Orders.objects.create(total_price=0)
         order.save()
         request.session['order_id'] = order.id
     return order
 
-def create_new_order(request, item_id):
+def create_one_time_order(request, item_id):
     item = Items.objects.get(id=item_id)
-    form = ItemForm(request.POST or None)
-    quantity = 1
-    if request.method == 'POST':
-        if form.is_valid():
-            quantity = form.cleaned_data['quantity']
-    order = Orders.objects.create(total_price=0)
-    order_item = ItemOrder(order=order, item=item, quantity=quantity)
-    order_item.save()
-    order.total_price += item.price * quantity
+    order = Orders.objects.create(total_price=item.price)
     order.save()
     return redirect('buy', order_id=order.id)
 
@@ -72,25 +61,32 @@ def buy_item(request, item_id):
             line_items=line_items,
             mode='payment',
             success_url='http://127.0.0.1:8000/success',
-            cancel_url='http://127.0.0.1:8000/cart',
+            cancel_url='http://127.0.0.1:8000/cancel',
         )
         return JsonResponse({'id': session.id})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=404)
 
+def cancel_order(request):
+    order = get_order(request)
+    order.is_paid = 'cancelled'
+    order.save()
+    return redirect('delete_from_cart')
+
 def buy_order(request, order_id):
     try:
-        item_orders = ItemOrder.objects.filter(order=order_id)
+        item_orders = get_order(request)
         line_items = []
-        for item_order in item_orders:
+
+        for item in item_orders.item.all():
             line_items.append({
                 'price_data': {
                     'currency': 'usd',
                     'product_data': {
-                        'name': item_order.item.name,
-                        'description': item_order.item.description,
+                        'name': item.name,
+                        'description': item.description,
                     },
-                    'unit_amount': int(item_order.item.price * 100)
+                    'unit_amount': int(item.price * 100)
                 },
                 'quantity': 1,
             })
@@ -106,48 +102,38 @@ def buy_order(request, order_id):
 
 def success(request):
     if 'order_id' in request.session:
-        order_id = request.session['order_id']
-        item_order = ItemOrder.objects.filter(order=order_id)
-        item_order.delete()
+        order = get_order(request)
+        order.is_paid = 'paid'
         request.session.pop('order_id')
     return render(request, 'success_payment.html')
 
 def add_to_cart(request, item_id):
-    quantity = 1
-    if request.method == "POST":
-        try:
-            item = Items.objects.get(id=item_id)
-        except Items.DoesNotExist:
-            return redirect('error')
-
-        order = get_order(request)
-        order.total_price += item.price * quantity
+    try:
+        item = Items.objects.get(id=item_id)
+    except Items.DoesNotExist:
+        return redirect('error')
+    order = get_order(request)
+    if not order.item.filter(id=item_id).exists():
+        order.item.add(item)
+        order.total_price += item.price
         order.save()
-
-        item_order, is_created = ItemOrder.objects.get_or_create(
-            item=item,
-            order=order,
-            defaults={'quantity': quantity}
-        )
-        item_order.save()
     return redirect('/')
 
 def cart(request):
     context = {}
     if 'order_id' in request.session:
-        order_id = request.session['order_id']
-        item_orders = ItemOrder.objects.filter(order=order_id)
+        item_orders = get_order(request)
         info_data = []
-        for item_order in item_orders:
+        for item in item_orders.item.all():
             info_data.append({
-                'id': item_order.item.id,
-                'name': item_order.item.name,
-                'description': item_order.item.description,
-                'price': item_order.item.price,
-                'quantity': item_order.quantity,
+                'id': item.id,
+                'name': item.name,
+                'description': item.description,
+                'price': item.price,
             })
         context = {'items': info_data}
         order = get_order(request)
+        order.calculate_total_price()
         context['public_stripe_key'] = settings.PUBLIC_STRIPE_KEY
         context['total_price'] = order.total_price
         context['order_id'] = order.id
@@ -157,11 +143,25 @@ def clear_cart(request):
     if 'order_id' in request.session:
         order_id = request.session['order_id']
         order = Orders.objects.get(id=order_id)
+        order.item.clear()
+        order.discount = None
+        order.tax = None
         order.total_price = 0
         order.save()
-        item_orders = ItemOrder.objects.filter(order=order_id)
-        item_orders.delete()
     return redirect('/')
 
 def error(request):
     return render(request, 'error.html')
+
+def add_discount(request, name_coupon):
+    order = get_order(request)
+    try:
+        coupon = Discounts.objects.get(name=name_coupon, active=True)
+        if coupon:
+            order.discount = coupon
+            order.save()
+            order.calculate_total_price()
+    except Discounts.DoesNotExist:
+        coupon = None
+        #TODO: обработка ошибки
+    return redirect('/')
