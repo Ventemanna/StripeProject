@@ -75,10 +75,10 @@ def cancel_order(request):
 
 def buy_order(request, order_id):
     try:
-        item_orders = get_order(request)
+        order = get_order(request)
         line_items = []
-
-        for item in item_orders.item.all():
+        discount = order.discount.stripe_coupon_id
+        for item in order.item.all():
             line_items.append({
                 'price_data': {
                     'currency': 'usd',
@@ -95,6 +95,7 @@ def buy_order(request, order_id):
             mode='payment',
             success_url='http://127.0.0.1:8000/success',
             cancel_url='http://127.0.0.1:8000/cart',
+            discounts=[{"coupon": discount}],
         )
         return JsonResponse({'id': session.id})
     except Exception as e:

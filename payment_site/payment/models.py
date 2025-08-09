@@ -25,7 +25,7 @@ class Discounts(models.Model):
     name = models.CharField(max_length=100)
     percent_off = models.FloatField(default=1.0, validators=[MinValueValidator(1), MaxValueValidator(100)])
     duration = models.CharField(max_length=10, choices=duration_of_coupon, default='once')
-    max_discount = models.PositiveIntegerField(default=0)
+
     stripe_coupon_id = models.CharField(max_length=100, null=True, blank=True)
     active = models.BooleanField(default=True)
 
@@ -37,8 +37,9 @@ class Discounts(models.Model):
             coupon = stripe.Coupon.create(
                 duration=self.duration,
                 percent_off=self.percent_off,
-                max_redemptions=self.max_discount,
-                duration_in_months=3
+                amount_off=self.max_discount,
+                duration_in_months=3 if self.duration == 'repeating' else None,
+                times_redeemed=1 if self.duration == 'once' else None,
             )
             self.stripe_coupon_id = coupon.id
         super().save(*args, **kwargs)
@@ -65,14 +66,13 @@ class Orders(models.Model):
     is_paid = models.CharField(max_length=10, choices=paid_values, default='created')
 
     def __str__(self):
-        return f"Закааз {self.id}"
+        return f"Заказ {self.id}"
 
     def calculate_total_price(self):
         order = Orders.objects.get(id=self.id)
         total_price = sum([item.price for item in order.item.all()])
         if order.discount:
-            discount = total_price * decimal.Decimal(order.discount.percent_off) / 100
-            total_price -= discount if discount <= order.discount.max_discount else order.discount.max_discount
+            total_price -= total_price * (decimal.Decimal(order.discount.percent_off) / 100)
         self.total_price = total_price
         self.save()
 
