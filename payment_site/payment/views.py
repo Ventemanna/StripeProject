@@ -77,7 +77,10 @@ def buy_order(request, order_id):
     try:
         order = get_order(request)
         line_items = []
-        discount = order.discount.stripe_coupon_id
+        discount = order.discount.stripe_coupon_id if order.discount else None
+        tax = []
+        for el in order.tax.all():
+            tax.append(el.stripe_tax_id)
         for item in order.item.all():
             line_items.append({
                 'price_data': {
@@ -89,6 +92,7 @@ def buy_order(request, order_id):
                     'unit_amount': int(item.price * 100)
                 },
                 'quantity': 1,
+                'tax_rates': tax
             })
         session = stripe.checkout.Session.create(
             line_items=line_items,
@@ -146,7 +150,7 @@ def clear_cart(request):
         order = Orders.objects.get(id=order_id)
         order.item.clear()
         order.discount = None
-        order.tax = None
+        order.tax.clear()
         order.total_price = 0
         order.save()
     return redirect('/')
@@ -164,5 +168,18 @@ def add_discount(request, name_coupon):
             order.calculate_total_price()
     except Discounts.DoesNotExist:
         coupon = None
+        #TODO: обработка ошибки
+    return redirect('/')
+
+def add_tax(request, name_coupon):
+    order = get_order(request)
+    try:
+        tax = Tax.objects.get(name=name_coupon, active=True)
+        if tax:
+            order.tax = tax
+            order.save()
+            order.calculate_total_price()
+    except Discounts.DoesNotExist:
+        tax = None
         #TODO: обработка ошибки
     return redirect('/')

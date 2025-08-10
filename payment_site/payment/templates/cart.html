@@ -29,7 +29,7 @@
       var orderId = '{{ order_id }}'
       var buyButton = document.getElementById('buy-button');
       buyButton.addEventListener('click', function () {
-        fetch(`/buy-order/${orderId}`, { method: 'GET' })
+        fetch(`/buy_order/${orderId}`, { method: 'GET' })
           .then(response => response.json())
           .then(session => {
             return stripe.redirectToCheckout({ sessionId: session.id });
