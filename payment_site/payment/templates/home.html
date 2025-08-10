@@ -11,7 +11,6 @@
       {% for item in all_items %}
       <div>
         <a href="{% url 'item' item.id %}">{{ item.name }}</a>
-        <p>{{ item.description }}</p>
         <p>{{ item.price }}$$</p>
         <a href="{% url 'item' item.id %}">Подробнее</a>
       </div>
