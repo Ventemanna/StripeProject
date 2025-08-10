@@ -83,7 +83,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'stripe_project',
-        'USER': 'venta',
+        'USER': 'postgres',
+        'PASSWORD': 'password',
+        'HOST': 'db',
         'PORT': 5432,
     }
 }
