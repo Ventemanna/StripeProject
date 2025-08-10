@@ -183,3 +183,6 @@ def add_tax(request, name_coupon):
         tax = None
         #TODO: обработка ошибки
     return redirect('/')
+
+
+#TODO: в админ панель изменить добавление предмета, убрать поля для stripe_id
