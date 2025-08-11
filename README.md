@@ -51,7 +51,7 @@ git clone git@github.com:Ventemanna/StripeProject.git
 cd StripeProject/payment_site
 ```
 
-Обязательно добавьте файл .env, в нем будут храниться secret и public ключи для подключения к Stripe
+Обязательно добавьте файл .env в папке StripeProject/payment_site, в нем будут храниться secret и public ключи для подключения к Stripe
 ```bash
 SECRET_STRIPE_KEY="sk_test_..."
 PUBLIC_STRIPE_KEY="pk_test_"
@@ -66,4 +66,14 @@ docker compose build
 docker compose up
 ```
 
-Теперь вы можете воспользоваться сайтом, зайня по адресу `127.0.0.1:8000/`.
+Теперь вы можете воспользоваться сайтом, зайдя по адресу `127.0.0.1:8000/`.
+
+После первого запуска автоматические создается суперюзер: 
+
+```
+login: admin 
+password: adminpass
+```
+
+Админка доступна по адресу:
+http://127.0.0.1:8000/admin/
