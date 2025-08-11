@@ -12,6 +12,7 @@ urlpatterns = [
     path('success', views.success, name='success'),
     path('cancel', views.cancel_order, name='cancel'),
     path('clear_cart', views.clear_cart, name='delete_from_cart'),
+    path('undefined', views.undefined, name='undefined'),
     path('error', views.error, name='error'),
     path('cart', views.cart, name='cart'),
     path('add_discount/<str:name_coupon>', views.add_discount, name='add-discount')

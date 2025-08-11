@@ -6,6 +6,7 @@ from django.shortcuts import render, redirect
 from .models import Items, Orders, Discounts, Tax
 
 from django.conf import settings
+from django.urls import reverse
 
 stripe.api_key = settings.SECRET_STRIPE_KEY
 
@@ -31,6 +32,7 @@ def get_order(request):
             order = Orders.objects.get(id=request.session['order_id'])
         except Orders.DoesNotExist:
             request.session.pop('order_id')
+            return render(request, 'error.html', context={'message': 'Заказа с таким id не существует. Перезагрузите страницу'})
     else:
         order = Orders.objects.create(total_price=0)
         order.save()
@@ -38,17 +40,31 @@ def get_order(request):
     return order
 
 def create_one_time_order(request, item_id):
-    item = Items.objects.get(id=item_id)
+    try:
+        item = Items.objects.get(id=item_id)
+    except Items.DoesNotExist:
+        return render(request, 'error.html', context={'message': 'Предмета с таким id не существует'})
     order = Orders.objects.create(total_price=item.price)
     order.save()
     return redirect('buy', order_id=order.id)
 
+
+def create_stripe_client(currency):
+    if currency == 'usd':
+        stripe.api_key = settings.SECRET_STRIPE_KEY_USD
+    elif currency == 'rub':
+        stripe.api_key = settings.SECRET_STRIPE_KEY_RUB
+    else:
+        return JsonResponse({'error': str("sdlkfnsldkfjnl")}, status=404)
+    return stripe
+
 def buy_item(request, item_id):
     try:
         item = Items.objects.get(id=item_id)
+        stripe_client = create_stripe_client(item.currency)
         line_items = [{
             'price_data': {
-                'currency': 'usd',
+                'currency': item.currency,
                 'product_data': {
                     'name': item.name,
                     'description': item.description,
@@ -57,7 +73,7 @@ def buy_item(request, item_id):
             },
             'quantity': 1,
         }]
-        session = stripe.checkout.Session.create(
+        session = stripe_client.checkout.Session.create(
             line_items=line_items,
             mode='payment',
             success_url='http://127.0.0.1:8000/success',
@@ -81,10 +97,11 @@ def buy_order(request, order_id):
         tax = []
         for el in order.tax.all():
             tax.append(el.stripe_tax_id)
+        currencies = set()
         for item in order.item.all():
             line_items.append({
                 'price_data': {
-                    'currency': 'usd',
+                    'currency': item.currency,
                     'product_data': {
                         'name': item.name,
                         'description': item.description,
@@ -94,6 +111,9 @@ def buy_order(request, order_id):
                 'quantity': 1,
                 'tax_rates': tax
             })
+            currencies.add(item.currency)
+            if len(currencies) > 1:
+                raise ValueError('someting went wrong')
         session = stripe.checkout.Session.create(
             line_items=line_items,
             mode='payment',
@@ -104,6 +124,9 @@ def buy_order(request, order_id):
         return JsonResponse({'id': session.id})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=404)
+
+def undefined(request):
+    return render(request,'error.html', context={'message': 'Заказ должен содержать 1 валюту'})
 
 def success(request):
     if 'order_id' in request.session:
@@ -116,7 +139,7 @@ def add_to_cart(request, item_id):
     try:
         item = Items.objects.get(id=item_id)
     except Items.DoesNotExist:
-        return redirect('error')
+        return render(request, 'error.html', context={'message':'Предмета с таким id нет'})
     order = get_order(request)
     if not order.item.filter(id=item_id).exists():
         order.item.add(item)
@@ -135,6 +158,7 @@ def cart(request):
                 'name': item.name,
                 'description': item.description,
                 'price': item.price,
+                'currency': item.currency
             })
         context = {'items': info_data}
         order = get_order(request)
@@ -147,7 +171,10 @@ def cart(request):
 def clear_cart(request):
     if 'order_id' in request.session:
         order_id = request.session['order_id']
-        order = Orders.objects.get(id=order_id)
+        try:
+            order = Orders.objects.get(id=order_id)
+        except Orders.DoesNotExist:
+            return render(request, 'error.html', context={'message': 'Предмета с таким id не существует'})
         order.item.clear()
         order.discount = None
         order.tax.clear()
@@ -167,22 +194,5 @@ def add_discount(request, name_coupon):
             order.save()
             order.calculate_total_price()
     except Discounts.DoesNotExist:
-        coupon = None
-        #TODO: обработка ошибки
+        return render(request, 'error.html', context={'message':'Купона с таким именем не существует'})
     return redirect('/')
-
-def add_tax(request, name_coupon):
-    order = get_order(request)
-    try:
-        tax = Tax.objects.get(name=name_coupon, active=True)
-        if tax:
-            order.tax = tax
-            order.save()
-            order.calculate_total_price()
-    except Discounts.DoesNotExist:
-        tax = None
-        #TODO: обработка ошибки
-    return redirect('/')
-
-
-#TODO: в админ панель изменить добавление предмета, убрать поля для stripe_id

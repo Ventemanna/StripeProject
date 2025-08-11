@@ -11,7 +11,7 @@
         {% for item in items %}
           <div>
               <h3>{{ item.name }}</h3>
-              <p>Цена: {{ item.price }}</p>
+              <p>Цена: {{ item.price }} {{ item.currency }}</p>
               <p>Количество: {{ item.quantity }}</p>
               <p>Описание: {{ item.description }}</p>
           </div>
@@ -30,11 +30,14 @@
       var buyButton = document.getElementById('buy-button');
       buyButton.addEventListener('click', function () {
         fetch(`/buy_order/${orderId}`, { method: 'GET' })
-          .then(response => response.json())
+          .then(res => {
+            if (!res.ok) return res.json().then(data => { window.location.href = data.redirect_url })
+            return res.json()
+          })
           .then(session => {
             return stripe.redirectToCheckout({ sessionId: session.id });
           })
-      });
+        });
     </script>
   </body>
 </html>

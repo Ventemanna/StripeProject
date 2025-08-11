@@ -134,6 +134,8 @@ STATICFILES_DIRS = [
 
 SECRET_STRIPE_KEY = os.getenv('SECRET_STRIPE_KEY')
 PUBLIC_STRIPE_KEY = os.getenv('PUBLIC_STRIPE_KEY')
+SECRET_STRIPE_KEY_USD = os.getenv('SECRET_STRIPE_KEY_USD')
+SECRET_STRIPE_KEY_RUB = os.getenv('SECRET_STRIPE_KEY_RUB')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
