@@ -19,7 +19,7 @@ class Items(models.Model):
         verbose_name_plural = 'Items'
 
     def __str__(self):
-        return f"{self.name}. За {self.price}"
+        return f"{self.name}. За {self.price} {self.currency}"
 
 class Discounts(models.Model):
     duration_of_coupon = [
@@ -83,8 +83,8 @@ class Orders(models.Model):
 
     item = models.ManyToManyField(Items)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
-    discount = models.OneToOneField(Discounts, on_delete=models.PROTECT, null=True, blank=True)
-    tax = models.ManyToManyField(Tax)
+    discount = models.ForeignKey(Discounts, on_delete=models.PROTECT, null=True, blank=True)
+    tax = models.ManyToManyField(Tax, blank=True, null=True)
 
     is_paid = models.CharField(max_length=10, choices=paid_values, default='created')
 
